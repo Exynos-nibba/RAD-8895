@@ -713,6 +713,9 @@ struct r8152 {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 22)
 	struct net_device_stats stats;
 #endif
+#ifdef CONFIG_PM_SLEEP
+	struct notifier_block pm_notifier;
+#endif
 
 	struct rtl_ops {
 		void (*init)(struct r8152 *);
@@ -5662,6 +5665,33 @@ static int rtk_disable_diag(struct r8152 *tp)
 	return 0;
 }
 
+#ifdef CONFIG_PM_SLEEP
+static int rtl_notifier(struct notifier_block *nb, unsigned long action,
+			void *data)
+{
+	struct r8152 *tp = container_of(nb, struct r8152, pm_notifier);
+
+	switch (action) {
+	case PM_HIBERNATION_PREPARE:
+	case PM_SUSPEND_PREPARE:
+		usb_autopm_get_interface(tp->intf);
+		break;
+
+	case PM_POST_HIBERNATION:
+	case PM_POST_SUSPEND:
+		usb_autopm_put_interface(tp->intf);
+		break;
+
+	case PM_POST_RESTORE:
+	case PM_RESTORE_PREPARE:
+	default:
+		break;
+	}
+
+	return NOTIFY_DONE;
+}
+#endif
+
 static int rtl8152_open(struct net_device *netdev)
 {
 	struct r8152 *tp = netdev_priv(netdev);
@@ -5703,6 +5733,10 @@ static int rtl8152_open(struct net_device *netdev)
 	mutex_unlock(&tp->control);
 
 	usb_autopm_put_interface(tp->intf);
+#ifdef CONFIG_PM_SLEEP
+	tp->pm_notifier.notifier_call = rtl_notifier;
+	register_pm_notifier(&tp->pm_notifier);
+#endif
 
 out:
 	pr_info("%s : end of function!\n", __func__);
@@ -5715,6 +5749,9 @@ static int rtl8152_close(struct net_device *netdev)
 	int res = 0;
 	int timeleft = -1;
 
+#ifdef CONFIG_PM_SLEEP
+	unregister_pm_notifier(&tp->pm_notifier);
+#endif
 	clear_bit(WORK_ENABLE, &tp->flags);
 	usb_kill_urb(tp->intr_urb);
 	cancel_delayed_work_sync(&tp->schedule);
