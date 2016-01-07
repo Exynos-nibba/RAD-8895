@@ -2245,11 +2245,6 @@ static void _rtl8152_set_rx_mode(struct net_device *netdev)
 	__le32 tmp[2];
 	u32 ocp_data;
 
-	clear_bit(RTL8152_SET_RX_MODE, &tp->flags);
-
-	if (!netif_carrier_ok(netdev))
-		return;
-
 	netif_stop_queue(netdev);
 	ocp_data = ocp_read_dword(tp, MCU_TYPE_PLA, PLA_RCR);
 	ocp_data &= ~RCR_ACPT_ALL;
@@ -5445,6 +5440,7 @@ static int rtl8152_set_speed(struct r8152 *tp, u8 autoneg, u16 speed, u8 duplex)
 	}
 
 	if (bmcr & BMCR_RESET) {
+	if (test_and_clear_bit(PHY_RESET, &tp->flags)) {
 		int i;
 
 		for (i = 0; i < 50; i++) {
@@ -5586,7 +5582,7 @@ static inline void __rtl_work_func(struct r8152 *tp)
 	if (test_and_clear_bit(RTL8152_LINK_CHG, &tp->flags))
 		set_carrier(tp);
 
-	if (test_bit(RTL8152_SET_RX_MODE, &tp->flags))
+	if (test_and_clear_bit(RTL8152_SET_RX_MODE, &tp->flags))
 		_rtl8152_set_rx_mode(tp->netdev);
 
 	/* don't schedule napi before linking */
