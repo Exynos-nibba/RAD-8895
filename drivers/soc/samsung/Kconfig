@@ -68,6 +68,7 @@ config SAMSUNG_DMADEV
 	  Use DMA device engine for PL330 DMAC.
 
 config EXYNOS_HOTPLUG_GOVERNOR
+	default n
 	bool "Enable Exynos dynamic hotplug governor"
 
 config SCHED_HP_EVENT
