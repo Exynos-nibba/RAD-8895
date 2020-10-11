@@ -1,0 +1,142 @@
+diff --git a/anykernel.sh b/anykernel.sh
+index acff2df972bc..eb82888dbee3 100755
+--- a/anykernel.sh
++++ b/anykernel.sh
+@@ -4,20 +4,20 @@
+ ## AnyKernel setup
+ # begin properties
+ properties() {
+-kernel.string=DirtyV by bsmitty83 @ xda-developers
++kernel.string=
+ do.devicecheck=1
+ do.modules=0
+ do.cleanup=1
+ do.cleanuponabort=0
+-device.name1=maguro
+-device.name2=toro
+-device.name3=toroplus
++device.name1=
++device.name2=
++device.name3=
+ device.name4=
+ device.name5=
+ } # end properties
+ 
+ # shell variables
+-block=/dev/block/platform/omap/omap_hsmmc.0/by-name/boot;
++block=;
+ is_slot_device=0;
+ 
+ 
+@@ -28,42 +28,12 @@ is_slot_device=0;
+ 
+ ## AnyKernel permissions
+ # set permissions for included ramdisk files
+-chmod -R 755 $ramdisk
+-chmod 644 $ramdisk/sbin/media_profiles.xml
+-
+ 
+ ## AnyKernel install
+ dump_boot;
+ 
+ # begin ramdisk changes
+ 
+-# init.rc
+-backup_file init.rc;
+-replace_string init.rc "cpuctl cpu,timer_slack" "mount cgroup none /dev/cpuctl cpu" "mount cgroup none /dev/cpuctl cpu,timer_slack";
+-append_file init.rc "run-parts" init;
+-
+-# init.tuna.rc
+-backup_file init.tuna.rc;
+-insert_line init.tuna.rc "nodiratime barrier=0" after "mount_all /fstab.tuna" "\tmount ext4 /dev/block/platform/omap/omap_hsmmc.0/by-name/userdata /data remount nosuid nodev noatime nodiratime barrier=0";
+-append_file init.tuna.rc "dvbootscript" init.tuna;
+-
+-# init.superuser.rc
+-if [ -f init.superuser.rc ]; then
+-  backup_file init.superuser.rc;
+-  replace_string init.superuser.rc "Superuser su_daemon" "# su daemon" "\n# Superuser su_daemon";
+-  prepend_file init.superuser.rc "SuperSU daemonsu" init.superuser;
+-else
+-  replace_file init.superuser.rc 750 init.superuser.rc;
+-  insert_line init.rc "init.superuser.rc" after "on post-fs-data" "    import /init.superuser.rc";
+-fi;
+-
+-# fstab.tuna
+-backup_file fstab.tuna;
+-patch_fstab fstab.tuna /system ext4 options "nodiratime,barrier=0" "nodev,noatime,nodiratime,barrier=0,data=writeback,noauto_da_alloc,discard";
+-patch_fstab fstab.tuna /cache ext4 options "barrier=0,nomblk_io_submit" "nosuid,nodev,noatime,nodiratime,errors=panic,barrier=0,nomblk_io_submit,data=writeback,noauto_da_alloc";
+-patch_fstab fstab.tuna /data ext4 options "nomblk_io_submit,data=writeback" "nosuid,nodev,noatime,errors=panic,nomblk_io_submit,data=writeback,noauto_da_alloc";
+-append_file fstab.tuna "usbdisk" fstab;
+-
+ # end ramdisk changes
+ 
+ write_boot;
+diff --git a/patch/fstab b/patch/fstab
+deleted file mode 100644
+index d6c944921ac9..000000000000
+--- a/patch/fstab
++++ /dev/null
+@@ -1,2 +0,0 @@
+-# USB storage device
+-/devices/platform/omap/musb-omap2430/musb-hdrc          auto                auto      defaults                                              voldmanaged=usbdisk:auto
+diff --git a/patch/init b/patch/init
+deleted file mode 100644
+index c375fef0ae85..000000000000
+--- a/patch/init
++++ /dev/null
+@@ -1,4 +0,0 @@
+-# Execute files in /system/etc/init.d before booting
+-service run-parts /sbin/bb/busybox run-parts /system/etc/init.d
+-    class main
+-    oneshot
+diff --git a/patch/init.superuser b/patch/init.superuser
+deleted file mode 100644
+index 0748763fe33b..000000000000
+--- a/patch/init.superuser
++++ /dev/null
+@@ -1,4 +0,0 @@
+-# SuperSU daemonsu
+-service daemonsu /system/xbin/daemonsu --auto-daemon
+-    user root
+-    group root
+diff --git a/patch/init.superuser.rc b/patch/init.superuser.rc
+deleted file mode 100644
+index fc6b6a24d79d..000000000000
+--- a/patch/init.superuser.rc
++++ /dev/null
+@@ -1,20 +0,0 @@
+-# SuperSU daemonsu
+-service daemonsu /system/xbin/daemonsu --auto-daemon
+-    user root
+-    group root
+-
+-# Superuser su_daemon
+-service su_daemon /system/xbin/su --daemon
+-    oneshot
+-
+-on property:persist.sys.root_access=0
+-    stop su_daemon
+-
+-on property:persist.sys.root_access=2
+-    stop su_daemon
+-
+-on property:persist.sys.root_access=1
+-    start su_daemon
+-
+-on property:persist.sys.root_access=3
+-    start su_daemon
+diff --git a/patch/init.tuna b/patch/init.tuna
+deleted file mode 100644
+index e3853c5935a8..000000000000
+--- a/patch/init.tuna
++++ /dev/null
+@@ -1,5 +0,0 @@
+-service dvbootscript /sbin/dvbootscript.sh
+-	class main
+-	user root
+-	group root
+-	oneshot
+diff --git a/zImage b/patch/placeholder
+similarity index 100%
+rename from zImage
+rename to patch/placeholder
