@@ -5,6 +5,7 @@ echo "---             RAD-KERNEL-BUILD-SCRIPT            ---"
 echo "------------------------------------------------------"
 
 DATE=$(date +'%Y%m%d')
+KERNELDIR=$(pwd)
 
 echo "Make sure you have specified your device! [export DEVICE=<N8/S8/S8p>]"
 echo "Make sure you have specified your Kernel build version! [export VERSION=<build_number>]"
@@ -66,10 +67,10 @@ if [ -e $(pwd)/out/arch/arm64/boot/Image ]; then
 	echo ""
 
 	echo -e "zipping up ak3"
-	cd ~/kernel/ausp/RAD/${AK3_PATH}
+	cd $(pwd)/RAD/${AK3_PATH}
 	zip -r9 kernel.zip * -x README.md kernel.zip/
-	mkdir ~/kernel/ausp/RAD/Releases/${VERSION}
-	mv kernel.zip ~/kernel/ausp/RAD/Releases/${VERSION}/RAD-${VERSION}-${DEFCONFIG}-AOSP.zip
+	mkdir ${KERNELDIR}/RAD/Releases/${VERSION}
+	mv kernel.zip ${KERNELDIR}/RAD/Releases/${VERSION}/RAD-${VERSION}-${DEFCONFIG}-${DATE}.zip
  	
 	echo "Done!"
 
