@@ -7,45 +7,73 @@ echo "------------------------------------------------------"
 DATE=$(date +'%Y%m%d')
 KERNELDIR=$(pwd)
 
-echo "Make sure you have specified your device! [export DEVICE=<N8/S8/S8p>]"
-echo "Make sure you have specified your Kernel build version! [export VERSION=<build_number>]"
+read -p "Select device (S8/S8+/N8) > " dv
+if [ "$dv" = "S8" -o "$dv" = "s8" ]; then
+     echo ""
+     echo "S8 selected"
+     export DEVICE=S8
+     echo ""
+  elif [ "$dv" = "S8+" -o "$dv" = "s8+" ]; then
+     echo ""
+     echo "S8+ selected"
+     export DEVICE=S8+
+     echo ""
+  elif [ "$dv" = "N8" -o "$dv" = "n8" ]; then
+     echo ""
+     echo "N8 selected"
+     export DEVICE=N8
+     echo ""
+  elif [ "$dv" = "" -o "$dv" = " " ]; then
+     echo "No device selected!"
+     echo "Exiting!"
+     exit 0
+fi
+
+echo "-----------------------------------------"
+
+read -p "Type version number > " vr
+export VERSION=$vr
+echo "<${VERSION}> version number has been set!"
 
 if [ "${DEVICE}" == "S8" ]; then
 		export DEFCONFIG=dreamlte;
 		export AK3_PATH=ak3-s8;
-	elif [ "${DEVICE}" == "S8p" ]; then
+	elif [ "${DEVICE}" == "S8+" ]; then
 		export DEFCONFIG=dream2lte;
 		export AK3_PATH=ak3-s8+;
 	elif [ "${DEVICE}" == "N8" ]; then
 		export DEFCONFIG=greatlte;
 		export AK3_PATH=ak3-n8;
 	fi;
+	
+echo "-----------------------------------------"
+	
+read -p "Clean source (y/n) > " yn
+if [ "$yn" = "Y" -o "$yn" = "y" ]; then
+     echo "Cleaning Source!"
+     export CLEAN=yes
+else
+     echo "Not cleaning source!"
+     export CLEAN=no
+fi
 
 export LOCALVERSION=-RAD-${VERSION}-${DATE}-AOSP
 
-echo "...................................."
-echo "...................................."
-echo ".. ""SETTING TOOLCHAIN AND ARCH"" .."
-echo "...................................."
-echo "...................................."
 export ARCH=arm64
 export PATH="$(pwd)/clang/bin/:$(pwd)/toolchain/bin:${PATH}"
 export CROSS_COMPILE=$(pwd)/toolchain/bin/aarch64-linux-gnu-
 
-echo ....................................
-echo ....................................
-echo .. ""CREATING/REMOVING OUT DIR""  ..
-echo ....................................
-echo ....................................
 rm -rf out
 mkdir -p out
 
-echo ....................................
-echo ....................................
-echo ........""CLEANING SOURCE"".........
-echo ....................................
-echo ....................................
-make O=out clean && make O=out mrproper
+if [ "${CLEAN}" == "yes" ]; then
+	echo "executing make clean & make mrproper";
+	make O=out clean && make O=out mrproper;
+  elif [ "${CLEAN}" == "no" ]; then
+	echo "Initiating Dirty build!";
+	fi;
+	
+echo "-----------------------------------------"	
 
 echo ....................................
 echo ....................................
@@ -54,7 +82,7 @@ echo ....................................
 echo ....................................
 make O=out exynos8895-${DEFCONFIG}_defconfig && make O=out CC=clang -j4
 
-echo ""making zip""
+echo ""Making AK3 zip!""
 if [ -e $(pwd)/out/arch/arm64/boot/Image ]; then
 	echo -e "Making AK3 ZIP"
 	rm -rf $(pwd)/RAD/${AK3_PATH}/Image
@@ -76,9 +104,9 @@ if [ -e $(pwd)/out/arch/arm64/boot/Image ]; then
 
 	echo ""
 else
-	echo Kernel didnt build successfully!
-	echo No zIMAGE in out dir
-	echo Exiting!
+	echo "Kernel didnt build successfully!"
+	echo "No zIMAGE in out dir"
+	echo "Exiting!"
 fi;
 
 exit 0
