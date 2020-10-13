@@ -5,13 +5,10 @@ ccflags-y := $(KBUILD_FP_SENSOR_CFLAGS)
 
 obj-$(CONFIG_ARCH_EXYNOS)	+= exynos-powermode.o
 obj-$(CONFIG_ARCH_EXYNOS)	+= exynos-pm.o
-obj-$(CONFIG_ARCH_EXYNOS)	+= exynos-el3_mon.o
-#obj-$(CONFIG_ARCH_EXYNOS)	+= exynos-cpu_hotplug.o
-obj-$(CONFIG_EXYNOS_MCINFO)	+= exynos-mcinfo.o
 
 obj-$(CONFIG_ARCH_EXYNOS)	+= exynos-smc.o
 obj-$(CONFIG_ARCH_EXYNOS)	+= exynos-el3_mon.o
-obj-$(CONFIG_ARCH_EXYNOS)	+= exynos-cpu_hotplug.o
+#obj-$(CONFIG_ARCH_EXYNOS)	+= exynos-cpu_hotplug.o
 obj-$(CONFIG_ARCH_EXYNOS)	+= exynos-cpumap.o
 obj-$(CONFIG_ARCH_EXYNOS)	+= core_reg.o
 

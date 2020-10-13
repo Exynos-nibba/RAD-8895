@@ -449,8 +449,10 @@ static ssize_t online_store(struct device *dev, struct device_attribute *attr,
 	int ret;
 
 /* #ifdef CONFIG_ARCH_EXYNOS
-	if (exynos_cpu_hotplug_enabled())
-		return count;
+	if (!strcmp(dev->bus->name, "cpu") && exynos_cpu_hotplug_enabled()) {
+		pr_info("Block cpu/online node by Exynos cpu-hotplug\n");
+		return -EPERM;
+	}
 #endif */
 
 	ret = strtobool(buf, &val);
