@@ -319,7 +319,7 @@ _dtbinst_pre_:
 
 %.dtb_dtbinst_: $(obj)/%.dtb _dtbinst_pre_
 	$(call cmd,dtb_install,$(INSTALL_DTBS_PATH))
-
+	
 # dtbtool (Exynos)
 # ---------------------------------------------------------------------------
 
@@ -461,3 +461,4 @@ define filechk_offsets
 	 echo ""; \
 	 echo "#endif" )
 endef
+
