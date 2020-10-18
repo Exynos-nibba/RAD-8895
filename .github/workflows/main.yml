@@ -6,10 +6,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        model: [ "G973F" ]
-
     steps:
     - uses: actions/checkout@v1
     - name: Install build essentials
@@ -28,4 +24,3 @@ jobs:
       with:
         name: RAD-TEST-dreamlte
         path: RAD/Releases/TEST/RAD-TEST-dreamlte-20201018.zip
-    - name: Upload Kernel Info
