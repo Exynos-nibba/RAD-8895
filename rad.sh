@@ -4,7 +4,7 @@ echo "------------------------------------------------------"
 echo "---             RAD-KERNEL-BUILD-SCRIPT            ---"
 echo "------------------------------------------------------"
 
-DATE=$(date +'%Y%m%d')
+DATE=$(date +'%Y%m%d-%H%M')
 KERNELDIR=$(pwd)
 
 read -p "Select device (S8/S8+/N8) > " dv
@@ -78,9 +78,11 @@ mkdir -p out
 
 if [ "${CLEAN}" == "yes" ]; then
 	echo "executing make clean & make mrproper";
+	BUILD_START=$(date +"%s");
 	make O=out clean && make O=out mrproper;
   elif [ "${CLEAN}" == "no" ]; then
 	echo "Initiating Dirty build!";
+	BUILD_START=$(date +"%s");
 	fi;
 	
 echo "-----------------------------------------"	
@@ -92,26 +94,35 @@ echo ....................................
 echo ....................................
 make O=out exynos8895-${DEFCONFIG}_defconfig && make O=out CC=clang -j4
 
+echo ""
 echo ""Making AK3 zip!""
-if [ -e $(pwd)/out/arch/arm64/boot/Image ]; then
-	echo -e "Making AK3 ZIP"
-	rm -rf $(pwd)/RAD/${AK3_PATH}/Image
- 	
-	rm -rf $(pwd)/RAD/${AK3_PATH}/kernel.zip
-
-	echo -e "copying zimage to ak3 folder"
-	cp $(pwd)/out/arch/arm64/boot/Image $(pwd)/RAD/${AK3_PATH}
- 	
+echo ""
+if [ ! -e ${KERNELDIR}/RAD/Releases ]; then
+		mkdir ${KERNELDIR}/RAD/Releases;
+	fi;
+	
+if [ -e ${KERNELDIR}/out/arch/arm64/boot/Image ]; then
+	rm -rf ${KERNELDIR}/RAD/${AK3_PATH}/dtb.img
+	rm -rf ${KERNELDIR}/RAD/${AK3_PATH}/Image	
+	rm -rf ${KERNELDIR}/RAD/${AK3_PATH}/kernel.zip
+	
 	echo ""
-
-	echo -e "zipping up ak3"
+	echo "Copying zImage & Dt.img to AK3 dir!"
+	echo ""
+	cp ${KERNELDIR}/out/arch/arm64/boot/Image ${KERNELDIR}/RAD/${AK3_PATH}
+	cp ${KERNELDIR}/out/arch/arm64/boot/dtb.img ${KERNELDIR}/RAD/${AK3_PATH}
+		
+	echo ""
+	echo "Zipping up AK3!"
+	echo ""
 	cd $(pwd)/RAD/${AK3_PATH}
 	zip -r9 kernel.zip * -x README.md kernel.zip/
 	mkdir ${KERNELDIR}/RAD/Releases/${VERSION}
 	mv kernel.zip ${KERNELDIR}/RAD/Releases/${VERSION}/RAD-${VERSION}-${DEFCONFIG}-${DATE}.zip
- 	
-	echo "Done!"
-
+	BUILD_END=$(date +"%s");
+	DIFF=$(($BUILD_END - $BUILD_START));
+	echo "";
+	echo "Build completed in $(($DIFF / 60)) minute(s) and $(($DIFF % 60)) seconds.";
 	echo ""
 else
 	echo "Kernel didnt build successfully!"
