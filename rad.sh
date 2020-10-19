@@ -5,20 +5,19 @@ echo "---             RAD-KERNEL-BUILD-SCRIPT            ---"
 echo "------------------------------------------------------"
 
 DATE=$(date +'%Y%m%d-%H%M')
+JOBS=$(nproc)
 KERNELDIR=$(pwd)
 export USE_CCACHE=1
 export CCACHE_DIR=~/.ccache
 
-read -p "Select device (S8/S8+/N8) > " dv
-if [ "$dv" = "S8" -o "$dv" = "s8" ]; then
+echo "Select which device you want to build for";
+echo "1. Samsung Galaxy S8/S8+ (Exynos) (SM-G95(0/5)(N/F/FD))";
+echo "2. Samsung Galaxy Note 8 (Exynos) (SM-N950F/FD)";
+read -p "Your choice? <1> <2> > " dv
+if [ "$dv" = "1" ]; then
      echo ""
-     echo "S8 selected"
-     export DEVICE=S8
-     echo ""
-  elif [ "$dv" = "S8+" -o "$dv" = "s8+" ]; then
-     echo ""
-     echo "S8+ selected"
-     export DEVICE=S8+
+     echo "S8/S8+ selected"
+     export DEVICE=S8/S8+
      echo ""
   elif [ "$dv" = "N8" -o "$dv" = "n8" ]; then
      echo ""
@@ -47,15 +46,13 @@ else
      echo ""
 fi;
 
-if [ "${DEVICE}" == "S8" ]; then
-		export DEFCONFIG=dreamlte;
-		export AK3_PATH=ak3-s8;
-	elif [ "${DEVICE}" == "S8+" ]; then
-		export DEFCONFIG=dream2lte;
-		export AK3_PATH=ak3-s8+;
+if [ "${DEVICE}" == "S8/S8+" ]; then
+		export DEFCONFIG=dreamlte-dream2lte;
+		export AK3_S8_PATH=ak3-s8;
+		export AK3_S8p_PATH=ak3-s8+;
 	elif [ "${DEVICE}" == "N8" ]; then
 		export DEFCONFIG=greatlte;
-		export AK3_PATH=ak3-n8;
+		export AK3_N8_PATH=ak3-n8;
 	fi;
 	
 echo "-----------------------------------------"
@@ -79,7 +76,7 @@ rm -rf out
 mkdir -p out
 
 if [ "${CLEAN}" == "yes" ]; then
-	echo "executing make clean & make mrproper";
+	echo "Executing make clean & make mrproper!";
 	BUILD_START=$(date +"%s");
 	make O=out clean && make O=out mrproper;
   elif [ "${CLEAN}" == "no" ]; then
@@ -94,7 +91,7 @@ echo ....................................
 echo ...""BUILDING KERNEL "".............
 echo ....................................
 echo ....................................
-make O=out exynos8895-${DEFCONFIG}_defconfig && make O=out CC=clang -j4
+make O=out exynos8895-${DEFCONFIG}_defconfig && make O=out CC=clang -j${JOBS}
 
 echo ""
 echo ""Making AK3 zip!""
@@ -104,33 +101,61 @@ if [ ! -e ${KERNELDIR}/RAD/Releases ]; then
 	fi;
 	
 if [ -e ${KERNELDIR}/out/arch/arm64/boot/Image ]; then
-	rm -rf ${KERNELDIR}/RAD/${AK3_PATH}/dtb.img
-	rm -rf ${KERNELDIR}/RAD/${AK3_PATH}/Image	
-	rm -rf ${KERNELDIR}/RAD/${AK3_PATH}/kernel.zip
+	rm -rf ${KERNELDIR}/RAD/${AK3_S8_PATH}/dt.img
+	rm -rf ${KERNELDIR}/RAD/${AK3_S8p_PATH}/dt.img
+	rm -rf ${KERNELDIR}/RAD/${AK3_N8_PATH}/dt.img
+	rm -rf ${KERNELDIR}/RAD/${AK3_S8_PATH}/Image
+	rm -rf ${KERNELDIR}/RAD/${AK3_S8p_PATH}/Image	
+	rm -rf ${KERNELDIR}/RAD/${AK3_N8_PATH}/Image
+	rm -rf ${KERNELDIR}/RAD/${AK3_S8_PATH}/kernel.zip
+	rm -rf ${KERNELDIR}/RAD/${AK3_S8p_PATH}/kernel.zip
+	rm -rf ${KERNELDIR}/RAD/${AK3_N8_PATH}/kernel.zip
+else
+	echo "Kernel didnt build successfully!"
+	echo "No zIMAGE in out dir"
+	echo "Exiting!"
+	exit 0
+fi;	
 	
 	echo ""
-	echo "Copying zImage & Dt.img to AK3 dir!"
+	echo "Copying zImage & dt.img to AK3 dir!"
 	echo ""
-	cp ${KERNELDIR}/out/arch/arm64/boot/Image ${KERNELDIR}/RAD/${AK3_PATH}
-	cp ${KERNELDIR}/out/arch/arm64/boot/dtb.img ${KERNELDIR}/RAD/${AK3_PATH}
+if [ "${DEVICE}" == "S8/S8+" ]; then
+		cp ${KERNELDIR}/out/arch/arm64/boot/Image ${KERNELDIR}/RAD/${AK3_S8_PATH};
+		cp ${KERNELDIR}/out/arch/arm64/boot/dtb_dreamlte.img ${KERNELDIR}/RAD/${AK3_S8_PATH};
+		cp ${KERNELDIR}/out/arch/arm64/boot/Image ${KERNELDIR}/RAD/${AK3_S8p_PATH};
+		cp ${KERNELDIR}/out/arch/arm64/boot/dtb_dream2lte.img ${KERNELDIR}/RAD/${AK3_S8p_PATH};
+	elif [ "${DEVICE}" == "N8" ]; then
+		cp ${KERNELDIR}/out/arch/arm64/boot/Image ${KERNELDIR}/RAD/${AK3_N8_PATH};
+		cp ${KERNELDIR}/out/arch/arm64/boot/dtb_greatlte.img ${KERNELDIR}/RAD/${AK3_N8_PATH};
+	fi;
 		
 	echo ""
 	echo "Zipping up AK3!"
 	echo ""
-	cd $(pwd)/RAD/${AK3_PATH}
+if [ "${DEVICE}" == "S8/S8+" ]; then
+	cd $(pwd)/RAD/${AK3_S8_PATH}
+	mv dtb_dreamlte.img dt.img
 	zip -r9 kernel.zip * -x README.md kernel.zip/
 	mkdir ${KERNELDIR}/RAD/Releases/${VERSION}
-	mv kernel.zip ${KERNELDIR}/RAD/Releases/${VERSION}/RAD-${VERSION}-${DEFCONFIG}-${DATE}.zip
+	mv kernel.zip ${KERNELDIR}/RAD/Releases/${VERSION}/RAD-${VERSION}-dreamlte-${DATE}.zip
+	cd $(pwd)/RAD/${AK3_S8p_PATH}
+	mv dtb_dream2lte.img dt.img
+	zip -r9 kernel.zip * -x README.md kernel.zip/
+	mv kernel.zip ${KERNELDIR}/RAD/Releases/${VERSION}/RAD-${VERSION}-dream2lte-${DATE}.zip
+    elif [ "${DEVICE}" == "N8" ]; then
+    	cd $(pwd)/RAD/${AK3_N8_PATH}
+	mv dtb_greatlte.img dt.img
+	zip -r9 kernel.zip * -x README.md kernel.zip/
+	mkdir ${KERNELDIR}/RAD/Releases/${VERSION}
+	mv kernel.zip ${KERNELDIR}/RAD/Releases/${VERSION}/RAD-${VERSION}-greatlte-${DATE}.zip
+    fi;
+    
 	BUILD_END=$(date +"%s");
 	DIFF=$(($BUILD_END - $BUILD_START));
 	echo "";
 	echo "Build completed in $(($DIFF / 60)) minute(s) and $(($DIFF % 60)) seconds.";
 	echo ""
-else
-	echo "Kernel didnt build successfully!"
-	echo "No zIMAGE in out dir"
-	echo "Exiting!"
-fi;
 
 exit 0
 
