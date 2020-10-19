@@ -23,7 +23,7 @@
 #include <mali_kbase.h>
 #include <gpu_integration_defs.h>
 
-#ifdef CONFIG_DEBUG_FS
+#if 0
 /** Show callback for the @c gpu_memory debugfs file.
  *
  * This function is called to get the contents of the @c gpu_memory debugfs
