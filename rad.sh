@@ -6,6 +6,8 @@ echo "------------------------------------------------------"
 
 DATE=$(date +'%Y%m%d-%H%M')
 KERNELDIR=$(pwd)
+export USE_CCACHE=1
+export CCACHE_DIR=~/.ccache
 
 read -p "Select device (S8/S8+/N8) > " dv
 if [ "$dv" = "S8" -o "$dv" = "s8" ]; then
