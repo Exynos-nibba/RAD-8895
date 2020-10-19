@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0
 
-dtb-$(CONFIG_CAMERA_DREAM) += exynos8895-dreamlte_eur_open_05.dtb \
+dtb-$(CONFIG_CAMERA_DREAM2) += exynos8895-dreamlte_eur_open_05.dtb \
 	exynos8895-dreamlte_eur_open_07.dtb \
 	exynos8895-dreamlte_eur_open_08.dtb \
 	exynos8895-dreamlte_eur_open_09.dtb \
