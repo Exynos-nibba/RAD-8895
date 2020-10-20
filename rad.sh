@@ -19,7 +19,7 @@ if [ "$dv" = "1" ]; then
      echo "S8/S8+ selected"
      export DEVICE=S8/S8+
      echo ""
-  elif [ "$dv" = "N8" -o "$dv" = "n8" ]; then
+  elif [ "$dv" = "2" -o "$dv" = "n8" ]; then
      echo ""
      echo "N8 selected"
      export DEVICE=N8
