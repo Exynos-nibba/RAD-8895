@@ -159,6 +159,7 @@ if [ "${DEVICE}" == "S8/S8+" ]; then
 	zip -r9 kernel.zip * -x README.md kernel.zip/
 	mkdir ${KERNELDIR}/RAD/Releases/${VERSION}
 	mv kernel.zip ${KERNELDIR}/RAD/Releases/${VERSION}/RAD-${VERSION}-dreamlte-${DATE}.zip
+	cd ${KERNELDIR}
 	cd $(pwd)/RAD/${AK3_S8p_PATH}
 	mv dtb_dream2lte.img dt.img
 	zip -r9 kernel.zip * -x README.md kernel.zip/
