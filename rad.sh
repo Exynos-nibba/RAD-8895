@@ -30,6 +30,15 @@ if [ "$dv" = "1" ]; then
      exit 0
 fi
 
+if [ "${DEVICE}" == "S8/S8+" ]; then
+		export DEFCONFIG=dreamlte-dream2lte;
+		export AK3_S8_PATH=ak3-s8;
+		export AK3_S8p_PATH=ak3-s8+;
+	elif [ "${DEVICE}" == "N8" ]; then
+		export DEFCONFIG=greatlte;
+		export AK3_N8_PATH=ak3-n8;
+	fi;
+	
 echo "-----------------------------------------"
 
 read -p "Type version number > " vr
@@ -45,17 +54,6 @@ else
      echo "<${VERSION}> version number has been set!"
      echo ""
 fi;
-
-if [ "${DEVICE}" == "S8/S8+" ]; then
-		export DEFCONFIG=dreamlte-dream2lte;
-		export AK3_S8_PATH=ak3-s8;
-		export AK3_S8p_PATH=ak3-s8+;
-	elif [ "${DEVICE}" == "N8" ]; then
-		export DEFCONFIG=greatlte;
-		export AK3_N8_PATH=ak3-n8;
-	fi;
-	
-echo "-----------------------------------------"
 	
 read -p "Clean source (y/n) > " yn
 if [ "$yn" = "Y" -o "$yn" = "y" ]; then
@@ -91,16 +89,21 @@ echo ....................................
 echo ...""BUILDING KERNEL "".............
 echo ....................................
 echo ....................................
-make O=out exynos8895-${DEFCONFIG}_defconfig && make O=out CC=clang -j${JOBS}
+make O=out exynos8895-${DEFCONFIG}_defconfig && script -q ~/Compile.log -c "
+make O=out CC=clang -j${JOBS}"
 
-echo ""
-echo ""Making AK3 zip!""
-echo ""
+if [ ! -e ${KERNELDIR}/RAD/logs ]; then
+		mkdir ${KERNELDIR}/RAD/logs;
+	fi;
+	
 if [ ! -e ${KERNELDIR}/RAD/Releases ]; then
 		mkdir ${KERNELDIR}/RAD/Releases;
 	fi;
 	
 if [ -e ${KERNELDIR}/out/arch/arm64/boot/Image ]; then
+        echo ""
+        echo ""Making AK3 zip!""
+        echo ""
 	rm -rf ${KERNELDIR}/RAD/${AK3_S8_PATH}/dt.img
 	rm -rf ${KERNELDIR}/RAD/${AK3_S8p_PATH}/dt.img
 	rm -rf ${KERNELDIR}/RAD/${AK3_N8_PATH}/dt.img
@@ -111,12 +114,29 @@ if [ -e ${KERNELDIR}/out/arch/arm64/boot/Image ]; then
 	rm -rf ${KERNELDIR}/RAD/${AK3_S8p_PATH}/kernel.zip
 	rm -rf ${KERNELDIR}/RAD/${AK3_N8_PATH}/kernel.zip
 else
+	echo ""
 	echo "Kernel didnt build successfully!"
 	echo "No zIMAGE in out dir"
-	echo "Exiting!"
+	export BUILD=FAIL
+	echo "Copying Logs!"
+	rm -rf ${KERNELDIR}/RAD/logs/build_fail-${VERSION}-${DATE}-${DEFCONFIG}.log
+	mv ~/Compile.log ${KERNELDIR}/RAD/logs/build_fail-${VERSION}-${DATE}-${DEFCONFIG}.log
+fi;
+
+if [ "${BUILD}" == "FAIL" ]; then
+	read -p "Do you want to read the logs? (y/n) > " log
+fi;
+
+if [ "$log" = "Y" -o "$log" = "y" ]; then
+     echo "Opening log!"
+     nano ${KERNELDIR}/RAD/logs/build_fail-${VERSION}-${DATE}-${DEFCONFIG}.log
+     echo "Exiting!"
+     exit 0
+  elif [ "$log" = "N" -o "$log" = "n" ]; then
+	echo "Exiting!";
 	exit 0
-fi;	
-	
+fi;
+
 	echo ""
 	echo "Copying zImage & dt.img to AK3 dir!"
 	echo ""
@@ -156,6 +176,4 @@ if [ "${DEVICE}" == "S8/S8+" ]; then
 	echo "";
 	echo "Build completed in $(($DIFF / 60)) minute(s) and $(($DIFF % 60)) seconds.";
 	echo ""
-
-exit 0
 
