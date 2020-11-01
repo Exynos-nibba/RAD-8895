@@ -41,12 +41,6 @@ if [ -e /system_root ]; then
 	ui_print "System-as-root detected!...";
 	mount -o remount,rw /system_root;
 	system_path=/system_root/system;
-	rm -f /system_root/system/vendor/etc/init/init.services.rc;
-	insert_line /system_root/init.rc "init.services.rc" after "import /init.environ.rc" "import /init.services.rc\n";
-	mv -f $ramdisk/init.services.rc /system_root;
-	mv -f $ramdisk/fstab.samsungexynos8895 /system_root/fstab.samsungexynos8895;
-	rm -rf /system_root/rz;
-	mv -f $ramdisk/rz /system_root/rz;
 else
 	mount -o remount,rw /system;
 fi;
@@ -56,14 +50,8 @@ ui_print "Cleaning old RZ leftovers...";
 rm -f $ramdisk/rz/scripts/40perf;
 rm -f $ramdisk/rz/scripts/90userinit;
 rm -f $system_path/bin/sysinit_cm;
-rm -f $system_path/etc/init.d/30zram;
 rm -f $system_path/etc/init.d/40perf;
 rm -f $system_path/etc/init.d/90userinit;
-
-if [ ! -e /system_root ]; then
-	insert_line $ramdisk/init.rc "init.services.rc" after "import /init.environ.rc" "import /init.services.rc\n";
-	remove_line $ramdisk/fstab.samsungexynos8895 /dev/block/platform/11120000.ufs/by-name/CPEFS;
-fi;
 
 ui_print "Initializing init.d support...";
 mkdir $system_path/etc/init.d;
