@@ -76,9 +76,15 @@ mkdir -p out
 if [ "${CLEAN}" == "yes" ]; then
 	echo "Executing make clean & make mrproper!";
 	BUILD_START=$(date +"%s");
+	rm -rf out;
+	mkdir -p out;
 	make O=out clean && make O=out mrproper;
   elif [ "${CLEAN}" == "no" ]; then
 	echo "Initiating Dirty build!";
+	rm -rf ${KERNELDIR}/out/arch/arm64/boot/Image;
+	rm -rf ${KERNELDIR}/out/arch/arm64/boot/dtb_dreamlte.img;
+	rm -rf ${KERNELDIR}/out/arch/arm64/boot/dtb_dream2lte.img;
+	rm -rf ${KERNELDIR}/out/arch/arm64/boot/dtb_greatlte.img;
 	BUILD_START=$(date +"%s");
 	fi;
 	
