@@ -70,9 +70,6 @@ export ARCH=arm64
 export PATH="$(pwd)/clang/bin/:$(pwd)/toolchain/bin:${PATH}"
 export CROSS_COMPILE=$(pwd)/toolchain/bin/aarch64-linux-gnu-
 
-rm -rf out
-mkdir -p out
-
 if [ "${CLEAN}" == "yes" ]; then
 	echo "Executing make clean & make mrproper!";
 	BUILD_START=$(date +"%s");
