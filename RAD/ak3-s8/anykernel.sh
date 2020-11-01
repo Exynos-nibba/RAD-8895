@@ -11,7 +11,7 @@ do.systemless=1
 do.cleanup=1
 do.cleanuponabort=0
 device.name1=dreamlte
-device.name2=dream2lte
+device.name2=
 device.name3=
 device.name4=
 device.name5=
@@ -35,32 +35,44 @@ ramdisk_compression=auto;
 set_perm_recursive 0 0 755 644 $ramdisk/*;
 set_perm_recursive 0 0 750 750 $ramdisk/init* $ramdisk/sbin;
 
-ui_print "Cleaning old Kernel leftovers...";
-mount -o remount,rw /system;
+system_path=/system
+# SAR check
+if [ -e /system_root ]; then
+	ui_print "System-as-root detected!...";
+	mount -o remount,rw /system_root;
+	system_path=/system_root/system;
+	rm -f /system_root/system/vendor/etc/init/init.services.rc;
+	insert_line /system_root/init.rc "init.services.rc" after "import /init.environ.rc" "import /init.services.rc\n";
+	mv -f $ramdisk/init.services.rc /system_root;
+	mv -f $ramdisk/fstab.samsungexynos8895 /system_root/fstab.samsungexynos8895;
+	rm -rf /system_root/rz;
+	mv -f $ramdisk/rz /system_root/rz;
+else
+	mount -o remount,rw /system;
+fi;
+
+# Cleanup
+ui_print "Cleaning old RZ leftovers...";
 rm -f $ramdisk/rz/scripts/40perf;
 rm -f $ramdisk/rz/scripts/90userinit;
-rm -f $ramdisk/init.spectrum.rc;
-rm -f $ramdisk/init.spectrum.sh;
-rm -f $ramdisk/sbin/rz_kernel.sh;
-rm -f /system/bin/sysinit_cm;
-rm -f /system/etc/init.d/30zram;
-rm -f /system/etc/init.d/40perf;
-rm -f /system/etc/init.d/90userinit;
-rm -rf /data/rz_system;
-rm -rf /system/rz_system;
+rm -f $system_path/bin/sysinit_cm;
+rm -f $system_path/etc/init.d/30zram;
+rm -f $system_path/etc/init.d/40perf;
+rm -f $system_path/etc/init.d/90userinit;
+
+if [ ! -e /system_root ]; then
+	insert_line $ramdisk/init.rc "init.services.rc" after "import /init.environ.rc" "import /init.services.rc\n";
+	remove_line $ramdisk/fstab.samsungexynos8895 /dev/block/platform/11120000.ufs/by-name/CPEFS;
+fi;
 
 ui_print "Initializing init.d support...";
-mkdir /system/etc/init.d;
-chmod 755 /system/etc/init.d;
+mkdir $system_path/etc/init.d;
+chmod 755 $system_path/etc/init.d;
 
 ## AnyKernel install
 dump_boot;
 
 # begin ramdisk changes
-
-# init.rc
-backup_file init.rc;
-replace_string init.rc "cpuctl cpu,timer_slack" "mount cgroup none /dev/cpuctl cpu" "mount cgroup none /dev/cpuctl cpu,timer_slack";
 
 # end ramdisk changes
 
