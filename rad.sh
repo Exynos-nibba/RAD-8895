@@ -4,7 +4,8 @@ echo "------------------------------------------------------"
 echo "---             RAD-KERNEL-BUILD-SCRIPT            ---"
 echo "------------------------------------------------------"
 
-sudo su
+echo "Please do make sure to run <sudo su> before running this script!"
+
 DATE=$(date +'%Y%m%d-%H%M')
 JOBS=$(nproc)
 KERNELDIR=$(pwd)
