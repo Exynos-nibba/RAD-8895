@@ -1,0 +1,35 @@
+ui_print(" ");
+ui_print("*******************************************************************");
+ui_print("***  Flashing RAD Kernel for 8895 devices!  ***");
+ui_print("*******************************************************************");
+ui_print(" ");
+
+# Mount System to remove kernel leftovers,etc etc!
+run_program("/sbin/mount", "/dev/block/platform/11120000.ufs/by-name/SYSTEM", "/system");
+
+# Cleaning up
+delete_recursive("/system_root/rz");
+delete_recursive("/system/rz");
+delete_recursive("/system/bin/sysinit_cm");
+delete_recursive("/system_root/system/bin/sysinit_cm");
+
+# Check device & flash kernel!
+if is_substring("dreamlte", file_getprop (/default.prop ro.product.device)) then
+	package_extract_file("boot_G950.img", "/dev/block/platform/11120000.ufs/by-name/BOOT");
+	ui_print("S8(G950) detected!");
+	ui_print("Flashing Kernel!");
+endif;
+if is_substring("dream2lte", file_getprop (/default.prop ro.product.device)) then
+	package_extract_file("boot_G955.img", "/dev/block/platform/11120000.ufs/by-name/BOOT");
+	ui_print("S8+(G955) detected!");
+	ui_print("Flashing Kernel!");
+endif;
+if is_substring("greatlte", file_getprop (/default.prop ro.product.device)) then
+	package_extract_file("boot_N950.img", "/dev/block/platform/11120000.ufs/by-name/BOOT");
+	ui_print("N8(N950) detected!");
+	ui_print("Flashing Kernel!");
+endif;
+
+ui_print("");
+ui_print("Done! Flash magisk next if you need root =)");
+ui_print("");
