@@ -1,0 +1,41 @@
+run_program("/sbin/busybox", "mount", "/system");
+run_program("/sbin/busybox", "mount", "/data");
+ui_print("***********************");
+ui_print("* RAD Kernel for 8895 ");
+ui_print("* For Galaxy G950X/G955X And N95X");
+ui_print("***********************");
+ui_print("");
+run_program("/sbin/mount", "-t", "auto", "/system");
+#####################################################################
+#                       Phone Variant Detection
+#####################################################################
+ui_print("-- Detecting phone variant...");
+if is_substring("G950", getprop("ro.boot.bootloader")) then
+    ui_print("-- Galaxy S8 detected, extracting files...");
+    package_extract_file("boot_G950.img", "/dev/block/platform/11120000.ufs/by-name/BOOT");
+endif;
+if is_substring("G955", getprop("ro.boot.bootloader")) then
+    ui_print("-- Galaxy S8+ detected, extracting files...");
+    package_extract_file("boot_G955.img", "/dev/block/platform/11120000.ufs/by-name/BOOT");
+endif;
+if is_substring("N950", getprop("ro.boot.bootloader")) then
+    ui_print("-- Galaxy Note 8 detected, extracting files...");
+    package_extract_file("boot_N950.img", "/dev/block/platform/11120000.ufs/by-name/BOOT");
+endif;
+
+# tune /system
+ui_print("-- tuning /system ...");
+run_program("/sbin/tune2fs", "-m", "0", "/dev/block/sda17");
+
+# tune /cache
+ui_print("-- tuning /cache ...");
+run_program("/sbin/tune2fs", "-m", "0", "/dev/block/sda18");
+
+# tune /data
+ui_print("-- tuning /data ...");
+run_program("/sbin/tune2fs", "-m", "0", "/dev/block/sda24");
+
+# Finish up!
+unmount("/system");
+ui_print(" Done! - RAD-ified your device successfully! ");
+ui_print("***********************");

@@ -32,11 +32,11 @@ fi
 
 if [ "${DEVICE}" == "S8/S8+" ]; then
 		export DEFCONFIG=dreamlte-dream2lte;
-		export AK3_S8_PATH=ak3-s8;
-		export AK3_S8p_PATH=ak3-s8+;
+		export AIK_S8_PATH=AIK-G950;
+		export AIK_S8p_PATH=AIK-G955;
 	elif [ "${DEVICE}" == "N8" ]; then
 		export DEFCONFIG=greatlte;
-		export AK3_N8_PATH=ak3-n8;
+		export AIK_N8_PATH=AIK-N950;
 	fi;
 	
 echo "-----------------------------------------"
@@ -64,7 +64,7 @@ else
      export CLEAN=no
 fi
 
-export LOCALVERSION=-RAD-${VERSION}-${DATE}-AOSP
+export LOCALVERSION=-RAD-${VERSION}-${DATE}
 
 export ARCH=arm64
 export PATH="$(pwd)/clang/bin/:$(pwd)/toolchain/bin:${PATH}"
@@ -78,20 +78,14 @@ if [ "${CLEAN}" == "yes" ]; then
 	make O=out clean && make O=out mrproper;
   elif [ "${CLEAN}" == "no" ]; then
 	echo "Initiating Dirty build!";
-	rm -rf ${KERNELDIR}/out/arch/arm64/boot/Image;
-	rm -rf ${KERNELDIR}/out/arch/arm64/boot/dtb_dreamlte.img;
-	rm -rf ${KERNELDIR}/out/arch/arm64/boot/dtb_dream2lte.img;
-	rm -rf ${KERNELDIR}/out/arch/arm64/boot/dtb_greatlte.img;
 	BUILD_START=$(date +"%s");
 	fi;
 	
 echo "-----------------------------------------"	
 
-echo ....................................
-echo ....................................
-echo ...""BUILDING KERNEL "".............
-echo ....................................
-echo ....................................
+echo "------------------------------------------------------"
+echo "---                Building Kernel!                ---"
+echo "------------------------------------------------------"
 make O=out exynos8895-${DEFCONFIG}_defconfig && script -q ~/Compile.log -c "
 make O=out CC=clang -j${JOBS}"
 
@@ -105,17 +99,17 @@ if [ ! -e ${KERNELDIR}/RAD/Releases ]; then
 	
 if [ -e ${KERNELDIR}/out/arch/arm64/boot/Image ]; then
         echo ""
-        echo ""Making AK3 zip!""
+        echo ""Making Flashable Zip!""
         echo ""
-	rm -rf ${KERNELDIR}/RAD/${AK3_S8_PATH}/dt.img
-	rm -rf ${KERNELDIR}/RAD/${AK3_S8p_PATH}/dt.img
-	rm -rf ${KERNELDIR}/RAD/${AK3_N8_PATH}/dt.img
-	rm -rf ${KERNELDIR}/RAD/${AK3_S8_PATH}/Image
-	rm -rf ${KERNELDIR}/RAD/${AK3_S8p_PATH}/Image	
-	rm -rf ${KERNELDIR}/RAD/${AK3_N8_PATH}/Image
-	rm -rf ${KERNELDIR}/RAD/${AK3_S8_PATH}/kernel.zip
-	rm -rf ${KERNELDIR}/RAD/${AK3_S8p_PATH}/kernel.zip
-	rm -rf ${KERNELDIR}/RAD/${AK3_N8_PATH}/kernel.zip
+	rm -rf ${KERNELDIR}/RAD/${AIK_S8_PATH}/split_img/boot.img-dt
+	rm -rf ${KERNELDIR}/RAD/${AIK_S8p_PATH}/split_img/boot.img-dt
+	rm -rf ${KERNELDIR}/RAD/${AIK_N8_PATH}/split_img/boot.img-dt
+	rm -rf ${KERNELDIR}/RAD/${AIK_S8_PATH}/split_img/boot.img-zImage
+	rm -rf ${KERNELDIR}/RAD/${AIK_S8p_PATH}/split_img/boot.img-zImage
+	rm -rf ${KERNELDIR}/RAD/${AIK_N8_PATH}/split_img/boot.img-zImage
+	rm -rf ${KERNELDIR}/RAD/${AIK_S8_PATH}/image-new.img
+	rm -rf ${KERNELDIR}/RAD/${AIK_S8p_PATH}/image-new.img
+	rm -rf ${KERNELDIR}/RAD/${AIK_N8_PATH}/image-new.img
 else
 	echo ""
 	echo "Kernel didnt build successfully!"
@@ -141,38 +135,39 @@ if [ "$log" = "Y" -o "$log" = "y" ]; then
 fi;
 
 	echo ""
-	echo "Copying zImage & dt.img to AK3 dir!"
+	echo "Copying zImage & dt.img to AIK dir!"
 	echo ""
 if [ "${DEVICE}" == "S8/S8+" ]; then
-		cp ${KERNELDIR}/out/arch/arm64/boot/Image ${KERNELDIR}/RAD/${AK3_S8_PATH};
-		cp ${KERNELDIR}/out/arch/arm64/boot/dtb_dreamlte.img ${KERNELDIR}/RAD/${AK3_S8_PATH};
-		cp ${KERNELDIR}/out/arch/arm64/boot/Image ${KERNELDIR}/RAD/${AK3_S8p_PATH};
-		cp ${KERNELDIR}/out/arch/arm64/boot/dtb_dream2lte.img ${KERNELDIR}/RAD/${AK3_S8p_PATH};
+		cp ${KERNELDIR}/out/arch/arm64/boot/Image ${KERNELDIR}/RAD/${AIK_S8_PATH}/split_img/boot.img-zImage;
+		cp ${KERNELDIR}/out/arch/arm64/boot/dtb_dreamlte.img ${KERNELDIR}/RAD/${AIK_S8_PATH}/split_img/boot.img-dt;
+		cp ${KERNELDIR}/out/arch/arm64/boot/Image ${KERNELDIR}/RAD/${AIK_S8p_PATH}/split_img/boot.img-zImage;
+		cp ${KERNELDIR}/out/arch/arm64/boot/dtb_dream2lte.img ${KERNELDIR}/RAD/${AIK_S8p_PATH}/split_img/boot.img-dt;
 	elif [ "${DEVICE}" == "N8" ]; then
-		cp ${KERNELDIR}/out/arch/arm64/boot/Image ${KERNELDIR}/RAD/${AK3_N8_PATH};
-		cp ${KERNELDIR}/out/arch/arm64/boot/dtb_greatlte.img ${KERNELDIR}/RAD/${AK3_N8_PATH};
+		cp ${KERNELDIR}/out/arch/arm64/boot/Image ${KERNELDIR}/RAD/${AIK_N8_PATH}/split_img/boot.img-zImage;
+		cp ${KERNELDIR}/out/arch/arm64/boot/dtb_greatlte.img ${KERNELDIR}/RAD/${AIK_N8_PATH}/split_img/boot.img-dt;
 	fi;
 		
 	echo ""
-	echo "Zipping up AK3!"
+	echo "Zipping up AIK!"
 	echo ""
 if [ "${DEVICE}" == "S8/S8+" ]; then
-	cd $(pwd)/RAD/${AK3_S8_PATH}
-	mv dtb_dreamlte.img dt.img
-	zip -r9 kernel.zip * -x README.md kernel.zip/
+	cd ${KERNELDIR}/RAD/${AIK_S8_PATH}
+	bash repackimg.sh
+	mv image-new.img ${KERNELDIR}/RAD/Flashable/boot_G950.img
 	mkdir ${KERNELDIR}/RAD/Releases/${VERSION}
-	mv kernel.zip ${KERNELDIR}/RAD/Releases/${VERSION}/RAD-${VERSION}-dreamlte-${DATE}.zip
 	cd ${KERNELDIR}
-	cd $(pwd)/RAD/${AK3_S8p_PATH}
-	mv dtb_dream2lte.img dt.img
-	zip -r9 kernel.zip * -x README.md kernel.zip/
-	mv kernel.zip ${KERNELDIR}/RAD/Releases/${VERSION}/RAD-${VERSION}-dream2lte-${DATE}.zip
+	cd $(pwd)/RAD/${AIK_S8p_PATH}
+	bash repackimg.sh
+	mv image-new.img ${KERNELDIR}/RAD/Flashable/boot_G955.img
+	cd ${KERNELDIR}/RAD/Flashable && zip -r9 RAD-${VERSION}-${DATE}.zip * -x README.md RAD-${VERSION}-${DATE}.zip/
+	mv RAD-${VERSION}-${DATE}.zip ${KERNELDIR}/RAD/Releases/${VERSION}/RAD-${VERSION}-${DATE}.zip
     elif [ "${DEVICE}" == "N8" ]; then
-    	cd $(pwd)/RAD/${AK3_N8_PATH}
-	mv dtb_greatlte.img dt.img
-	zip -r9 kernel.zip * -x README.md kernel.zip/
+    	cd ${KERNELDIR}/RAD/${AIK_N8_PATH}
+	bash repackimg.sh
+	mv image-new.img ${KERNELDIR}/RAD/Flashable/boot_N950.img
 	mkdir ${KERNELDIR}/RAD/Releases/${VERSION}
-	mv kernel.zip ${KERNELDIR}/RAD/Releases/${VERSION}/RAD-${VERSION}-greatlte-${DATE}.zip
+	cd ${KERNELDIR}/RAD/Flashable && zip -r9 RAD-${VERSION}-${DATE}.zip * -x README.md RAD-${VERSION}-${DATE}.zip/
+	mv RAD-${VERSION}-${DATE}.zip ${KERNELDIR}/RAD/Releases/${VERSION}/RAD-${VERSION}-${DATE}.zip
     fi;
     
 	BUILD_END=$(date +"%s");
