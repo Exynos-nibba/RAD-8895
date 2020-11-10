@@ -39,7 +39,6 @@
 #include <sound/core.h>
 #include <sound/control.h>
 #include <sound/pcm.h>
-#include <sound/pcm_params.h>
 #include <sound/info.h>
 #include <sound/initval.h>
 
@@ -306,6 +305,19 @@ static int loopback_trigger(struct snd_pcm_substream *substream, int cmd)
 	return 0;
 }
 
+static void params_change_substream(struct loopback_pcm *dpcm,
+				    struct snd_pcm_runtime *runtime)
+{
+	struct snd_pcm_runtime *dst_runtime;
+
+	if (dpcm == NULL || dpcm->substream == NULL)
+		return;
+	dst_runtime = dpcm->substream->runtime;
+	if (dst_runtime == NULL)
+		return;
+	dst_runtime->hw = dpcm->cable->hw;
+}
+
 static void params_change(struct snd_pcm_substream *substream)
 {
 	struct snd_pcm_runtime *runtime = substream->runtime;
@@ -317,6 +329,10 @@ static void params_change(struct snd_pcm_substream *substream)
 	cable->hw.rate_max = runtime->rate;
 	cable->hw.channels_min = runtime->channels;
 	cable->hw.channels_max = runtime->channels;
+	params_change_substream(cable->streams[SNDRV_PCM_STREAM_PLAYBACK],
+				runtime);
+	params_change_substream(cable->streams[SNDRV_PCM_STREAM_CAPTURE],
+				runtime);
 }
 
 static int loopback_prepare(struct snd_pcm_substream *substream)
@@ -604,29 +620,26 @@ static unsigned int get_cable_index(struct snd_pcm_substream *substream)
 static int rule_format(struct snd_pcm_hw_params *params,
 		       struct snd_pcm_hw_rule *rule)
 {
-	struct loopback_pcm *dpcm = rule->private;
-	struct loopback_cable *cable = dpcm->cable;
-	struct snd_mask m;
 
-	snd_mask_none(&m);
-	mutex_lock(&dpcm->loopback->cable_lock);
-	m.bits[0] = (u_int32_t)cable->hw.formats;
-	m.bits[1] = (u_int32_t)(cable->hw.formats >> 32);
-	mutex_unlock(&dpcm->loopback->cable_lock);
-	return snd_mask_refine(hw_param_mask(params, rule->var), &m);
+	struct snd_pcm_hardware *hw = rule->private;
+	struct snd_mask *maskp = hw_param_mask(params, rule->var);
+
+	maskp->bits[0] &= (u_int32_t)hw->formats;
+	maskp->bits[1] &= (u_int32_t)(hw->formats >> 32);
+	memset(maskp->bits + 2, 0, (SNDRV_MASK_MAX-64) / 8); /* clear rest */
+	if (! maskp->bits[0] && ! maskp->bits[1])
+		return -EINVAL;
+	return 0;
 }
 
 static int rule_rate(struct snd_pcm_hw_params *params,
 		     struct snd_pcm_hw_rule *rule)
 {
-	struct loopback_pcm *dpcm = rule->private;
-	struct loopback_cable *cable = dpcm->cable;
+	struct snd_pcm_hardware *hw = rule->private;
 	struct snd_interval t;
 
-	mutex_lock(&dpcm->loopback->cable_lock);
-	t.min = cable->hw.rate_min;
-	t.max = cable->hw.rate_max;
-	mutex_unlock(&dpcm->loopback->cable_lock);
+        t.min = hw->rate_min;
+        t.max = hw->rate_max;
         t.openmin = t.openmax = 0;
         t.integer = 0;
 	return snd_interval_refine(hw_param_interval(params, rule->var), &t);
@@ -635,36 +648,14 @@ static int rule_rate(struct snd_pcm_hw_params *params,
 static int rule_channels(struct snd_pcm_hw_params *params,
 			 struct snd_pcm_hw_rule *rule)
 {
-	struct loopback_pcm *dpcm = rule->private;
-	struct loopback_cable *cable = dpcm->cable;
+	struct snd_pcm_hardware *hw = rule->private;
 	struct snd_interval t;
 
-	mutex_lock(&dpcm->loopback->cable_lock);
-	t.min = cable->hw.channels_min;
-	t.max = cable->hw.channels_max;
-	mutex_unlock(&dpcm->loopback->cable_lock);
+        t.min = hw->channels_min;
+        t.max = hw->channels_max;
         t.openmin = t.openmax = 0;
         t.integer = 0;
 	return snd_interval_refine(hw_param_interval(params, rule->var), &t);
-}
-
-static void free_cable(struct snd_pcm_substream *substream)
-{
-	struct loopback *loopback = substream->private_data;
-	int dev = get_cable_index(substream);
-	struct loopback_cable *cable;
-
-	cable = loopback->cables[substream->number][dev];
-	if (!cable)
-		return;
-	if (cable->streams[!substream->stream]) {
-		/* other stream is still alive */
-		cable->streams[substream->stream] = NULL;
-	} else {
-		/* free the cable */
-		loopback->cables[substream->number][dev] = NULL;
-		kfree(cable);
-	}
 }
 
 static int loopback_open(struct snd_pcm_substream *substream)
@@ -672,7 +663,7 @@ static int loopback_open(struct snd_pcm_substream *substream)
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	struct loopback *loopback = substream->private_data;
 	struct loopback_pcm *dpcm;
-	struct loopback_cable *cable = NULL;
+	struct loopback_cable *cable;
 	int err = 0;
 	int dev = get_cable_index(substream);
 
@@ -691,6 +682,7 @@ static int loopback_open(struct snd_pcm_substream *substream)
 	if (!cable) {
 		cable = kzalloc(sizeof(*cable), GFP_KERNEL);
 		if (!cable) {
+			kfree(dpcm);
 			err = -ENOMEM;
 			goto unlock;
 		}
@@ -708,19 +700,19 @@ static int loopback_open(struct snd_pcm_substream *substream)
 	/* are cached -> they do not reflect the actual state */
 	err = snd_pcm_hw_rule_add(runtime, 0,
 				  SNDRV_PCM_HW_PARAM_FORMAT,
-				  rule_format, dpcm,
+				  rule_format, &runtime->hw,
 				  SNDRV_PCM_HW_PARAM_FORMAT, -1);
 	if (err < 0)
 		goto unlock;
 	err = snd_pcm_hw_rule_add(runtime, 0,
 				  SNDRV_PCM_HW_PARAM_RATE,
-				  rule_rate, dpcm,
+				  rule_rate, &runtime->hw,
 				  SNDRV_PCM_HW_PARAM_RATE, -1);
 	if (err < 0)
 		goto unlock;
 	err = snd_pcm_hw_rule_add(runtime, 0,
 				  SNDRV_PCM_HW_PARAM_CHANNELS,
-				  rule_channels, dpcm,
+				  rule_channels, &runtime->hw,
 				  SNDRV_PCM_HW_PARAM_CHANNELS, -1);
 	if (err < 0)
 		goto unlock;
@@ -732,10 +724,6 @@ static int loopback_open(struct snd_pcm_substream *substream)
 	else
 		runtime->hw = cable->hw;
  unlock:
-	if (err < 0) {
-		free_cable(substream);
-		kfree(dpcm);
-	}
 	mutex_unlock(&loopback->cable_lock);
 	return err;
 }
@@ -744,10 +732,20 @@ static int loopback_close(struct snd_pcm_substream *substream)
 {
 	struct loopback *loopback = substream->private_data;
 	struct loopback_pcm *dpcm = substream->runtime->private_data;
+	struct loopback_cable *cable;
+	int dev = get_cable_index(substream);
 
 	loopback_timer_stop(dpcm);
 	mutex_lock(&loopback->cable_lock);
-	free_cable(substream);
+	cable = loopback->cables[substream->number][dev];
+	if (cable->streams[!substream->stream]) {
+		/* other stream is still alive */
+		cable->streams[substream->stream] = NULL;
+	} else {
+		/* free the cable */
+		loopback->cables[substream->number][dev] = NULL;
+		kfree(cable);
+	}
 	mutex_unlock(&loopback->cable_lock);
 	return 0;
 }

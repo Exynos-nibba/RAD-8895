@@ -42,7 +42,7 @@ static int handle_hvc(struct kvm_vcpu *vcpu, struct kvm_run *run)
 
 	ret = kvm_psci_call(vcpu);
 	if (ret < 0) {
-		vcpu_set_reg(vcpu, 0, ~0UL);
+		kvm_inject_undefined(vcpu);
 		return 1;
 	}
 
@@ -51,7 +51,7 @@ static int handle_hvc(struct kvm_vcpu *vcpu, struct kvm_run *run)
 
 static int handle_smc(struct kvm_vcpu *vcpu, struct kvm_run *run)
 {
-	vcpu_set_reg(vcpu, 0, ~0UL);
+	kvm_inject_undefined(vcpu);
 	return 1;
 }
 
