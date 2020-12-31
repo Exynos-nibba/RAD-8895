@@ -4,8 +4,6 @@ echo "------------------------------------------------------"
 echo "---             RAD-KERNEL-BUILD-SCRIPT            ---"
 echo "------------------------------------------------------"
 
-echo "Please do make sure to run <sudo su> before running this script!"
-
 DATE=$(date +'%Y%m%d-%H%M')
 JOBS=$(nproc)
 KERNELDIR=$(pwd)
@@ -66,7 +64,7 @@ else
      export CLEAN=no
 fi
 
-export LOCALVERSION=-RAD-${VERSION}-${DATE}-AOSP
+export LOCALVERSION=-RAD-${VERSION}-${DATE}
 
 export ARCH=arm64
 export PATH="$(pwd)/clang/bin/:$(pwd)/toolchain/bin:${PATH}"
@@ -80,20 +78,14 @@ if [ "${CLEAN}" == "yes" ]; then
 	make O=out clean && make O=out mrproper;
   elif [ "${CLEAN}" == "no" ]; then
 	echo "Initiating Dirty build!";
-	rm -rf ${KERNELDIR}/out/arch/arm64/boot/Image;
-	rm -rf ${KERNELDIR}/out/arch/arm64/boot/dtb_dreamlte.img;
-	rm -rf ${KERNELDIR}/out/arch/arm64/boot/dtb_dream2lte.img;
-	rm -rf ${KERNELDIR}/out/arch/arm64/boot/dtb_greatlte.img;
 	BUILD_START=$(date +"%s");
 	fi;
 	
 echo "-----------------------------------------"	
 
-echo ....................................
-echo ....................................
-echo ...""BUILDING KERNEL "".............
-echo ....................................
-echo ....................................
+echo "------------------------------------------------------"
+echo "---                Building Kernel!                ---"
+echo "------------------------------------------------------"
 make O=out exynos8895-${DEFCONFIG}_defconfig && script -q ~/Compile.log -c "
 make O=out CC=clang -j${JOBS}"
 
